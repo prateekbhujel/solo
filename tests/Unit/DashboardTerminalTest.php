@@ -35,4 +35,33 @@ class DashboardTerminalTest extends Base
 
         $this->assertSame([132, 43], $dashboard->getDimensions());
     }
+
+    #[Test]
+    public function resize_respects_a_get_dimensions_override(): void
+    {
+        $dashboard = new class extends Dashboard
+        {
+            public function __construct()
+            {
+                $this->width = 80;
+                $this->height = 24;
+                $this->commands = [];
+            }
+
+            public function getDimensions(): array
+            {
+                return [144, 48];
+            }
+
+            protected function nativeDimensions(): ?array
+            {
+                return [132, 43];
+            }
+        };
+
+        $dashboard->handleResize();
+
+        $this->assertSame(144, $dashboard->width);
+        $this->assertSame(48, $dashboard->height);
+    }
 }

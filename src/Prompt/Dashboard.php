@@ -262,15 +262,12 @@ class Dashboard extends Prompt
         putenv('COLUMNS');
         putenv('LINES');
 
-        $dimensions = $this->nativeDimensions();
-
-        if ($dimensions === null) {
+        if ($this->nativeDimensions() === null) {
             $terminal = new Terminal;
             $terminal->initDimensions();
-            $dimensions = [$terminal->cols(), $terminal->lines()];
         }
 
-        [$width, $height] = $dimensions;
+        [$width, $height] = $this->getDimensions();
 
         // Put them back in, in case anyone else needs them.
         putenv("COLUMNS={$width}");
