@@ -14,6 +14,7 @@ use Chewie\Concerns\CreatesAnAltScreen;
 use Chewie\Concerns\Loops;
 use Chewie\Concerns\SetsUpAndResets;
 use Illuminate\Support\Collection;
+use Io\Terminal\Terminal as NativeTerminal;
 use Laravel\Prompts\Prompt;
 use Laravel\Prompts\Terminal;
 use SoloTerm\Screen\Screen;
@@ -208,10 +209,43 @@ class Dashboard extends Prompt
      */
     public function getDimensions(): array
     {
+        if (($dimensions = $this->nativeDimensions()) !== null) {
+            return $dimensions;
+        }
+
         return [
             $this->terminal()->cols(),
-            $this->terminal()->lines()
+            $this->terminal()->lines(),
         ];
+    }
+
+    /**
+     * @return array{0: int, 1: int}|null
+     */
+    protected function nativeDimensions(): ?array
+    {
+        if (! $this->hasNativeTerminal()) {
+            return null;
+        }
+
+        $size = NativeTerminal::create()->getSize();
+
+        return $size === false
+            ? null
+            : [$size->cols, $size->rows];
+    }
+
+    protected function hasNativeTerminal(): bool
+    {
+        if (! extension_loaded('terminal') || ! class_exists(NativeTerminal::class, false)) {
+            return false;
+        }
+
+        $version = phpversion('terminal');
+
+        return is_string($version)
+            && version_compare($version, '1.0.0', '>=')
+            && version_compare($version, '2.0.0', '<');
     }
 
     public function handleResize(): false
@@ -228,14 +262,19 @@ class Dashboard extends Prompt
         putenv('COLUMNS');
         putenv('LINES');
 
-        $terminal = new Terminal;
-        $terminal->initDimensions();
+        $dimensions = $this->nativeDimensions();
+
+        if ($dimensions === null) {
+            $terminal = new Terminal;
+            $terminal->initDimensions();
+            $dimensions = [$terminal->cols(), $terminal->lines()];
+        }
+
+        [$width, $height] = $dimensions;
 
         // Put them back in, in case anyone else needs them.
-        putenv('COLUMNS=' . $terminal->cols());
-        putenv('LINES=' . $terminal->lines());
-
-        [$width, $height] = $this->getDimensions();
+        putenv("COLUMNS={$width}");
+        putenv("LINES={$height}");
 
         if ($width !== $this->width || $height !== $this->height) {
             $this->width = $width;

@@ -8,4 +8,6 @@ parameters:
         - tests
         - workbench/app
         - workbench/routes
+    stubFiles:
+        - stubs/ext-terminal.php
     tmpDir: build/phpstan
